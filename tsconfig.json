@@ -1,0 +1,34 @@
+{
+    "compilerOptions": {
+        "target": "es2020",
+        "lib": ["ESNext", "DOM", "WebWorker", "DOM.Iterable"],
+        "module": "ESNext",
+        "allowJs": false,
+        "removeComments": false,
+        "strict": true,
+        "noImplicitAny": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "noImplicitReturns": true,
+        "strictNullChecks": false,
+        "allowSyntheticDefaultImports": true,
+        "moduleResolution": "bundler",
+        "resolveJsonModule": true,
+        "skipDefaultLibCheck": true,
+        "forceConsistentCasingInFileNames": true,
+        "types": ["node"],
+        "paths": {
+            "~/*": ["./src/*"],
+            "@test-utils": ["./tests/utils/index.ts"],
+            "pixi.js": ["./src/index.ts"],
+            "pixi.js/*": ["./src/*"]
+        },
+        "rewriteRelativeImportExtensions": true
+    },
+    "exclude": [
+        "node_modules",
+        "**/dist/**",
+        "**/lib/**",
+        "**/out/**"
+    ]
+}
