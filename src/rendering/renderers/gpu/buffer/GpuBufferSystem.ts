@@ -13,6 +13,14 @@ export class GpuBufferData implements GPUData
 {
     public gpuBuffer: GPUBuffer;
 
+    /**
+     * The `Buffer._updateID` this renderer has uploaded up to. Tracked per renderer
+     * (like `GlBuffer.updateID`) rather than by resetting the shared `_updateID`,
+     * so one renderer consuming an update cannot hide it from another renderer
+     * sharing the same buffer.
+     */
+    public updateID = -1;
+
     constructor(gpuBuffer: GPUBuffer)
     {
         this.gpuBuffer = gpuBuffer;
@@ -73,13 +81,15 @@ export class GpuBufferSystem implements System
     public updateBuffer(buffer: Buffer): GPUBuffer
     {
         const gpuBuffer = this.getGPUBuffer(buffer);
+        const gpuBufferData = buffer._gpuData[this._renderer.uid] as GpuBufferData;
 
         const data = buffer.data;
 
-        // TODO this can be better...
-        if (buffer._updateID && data)
+        // each renderer tracks the updates it has applied itself, so an update
+        // shared with another renderer is uploaded once per renderer, never skipped
+        if (data && gpuBufferData.updateID !== buffer._updateID)
         {
-            buffer._updateID = 0;
+            gpuBufferData.updateID = buffer._updateID;
 
             // make sure
             this._gpu.device.queue.writeBuffer(
@@ -111,8 +121,6 @@ export class GpuBufferSystem implements System
     {
         const gpuBuffer = this._gpu.device.createBuffer(buffer.descriptor);
 
-        buffer._updateID = 0;
-
         if (buffer.data)
         {
             // TODO if data is static, this can be mapped at creation
@@ -126,7 +134,12 @@ export class GpuBufferSystem implements System
             gpuBuffer.unmap();
         }
 
-        buffer._gpuData[this._renderer.uid] = new GpuBufferData(gpuBuffer);
+        const gpuBufferData = new GpuBufferData(gpuBuffer);
+
+        // the full data was just uploaded, so this renderer is up to date
+        gpuBufferData.updateID = buffer._updateID;
+
+        buffer._gpuData[this._renderer.uid] = gpuBufferData;
         if (this._managedBuffers.add(buffer))
         {
             buffer.on('update', this.updateBuffer, this);
@@ -139,7 +152,6 @@ export class GpuBufferSystem implements System
     protected onBufferChange(buffer: Buffer)
     {
         this._managedBuffers.remove(buffer);
-        buffer._updateID = 0;
         this.createGPUBuffer(buffer);
     }
 
